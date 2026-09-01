@@ -21,7 +21,7 @@ export type CompiledToolEntry =
   | {
       readonly definition: CompiledToolDefinition;
       readonly kind: "web-search-tool";
-      readonly provider: "exa" | "parallel";
+      readonly provider: "exa" | "parallel" | "tako";
     }
   | { readonly kind: "dynamic-tool"; readonly definition: CompiledDynamicToolDefinition };
 

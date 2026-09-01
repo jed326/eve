@@ -306,3 +306,333 @@ export const WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA: JsonObject = {
     },
   ],
 };
+
+const TAKO_NULLABLE_STRING: JsonObject = { anyOf: [{ type: "string" }, { type: "null" }] };
+
+const TAKO_DATASET_CELL: JsonObject = {
+  anyOf: [{ type: "boolean" }, { type: "number" }, { type: "string" }, { type: "null" }],
+};
+
+/**
+ * Mirrors the `TakoResultContent` shape from `@ai-sdk/gateway`. Both data
+ * cards and web results carry it; the dataset fields populate only when
+ * content inlining is enabled.
+ */
+const TAKO_RESULT_CONTENT: JsonObject = {
+  anyOf: [
+    {
+      properties: {
+        card_data: { anyOf: [{ type: "object" }, { type: "null" }] },
+        card_data_schema: { anyOf: [{ type: "object" }, { type: "null" }] },
+        content_format: {
+          anyOf: [
+            { enum: ["card_json", "csv", "json_compact", "json_records"], type: "string" },
+            { type: "null" },
+          ],
+        },
+        cost: { type: "number" },
+        data: TAKO_NULLABLE_STRING,
+        dataset: {
+          anyOf: [
+            {
+              properties: {
+                columns: {
+                  items: {
+                    properties: {
+                      name: { type: "string" },
+                      type: {
+                        enum: ["boolean", "date", "datetime", "number", "string"],
+                        type: "string",
+                      },
+                      unit: TAKO_NULLABLE_STRING,
+                    },
+                    required: ["name", "type"],
+                    type: "object",
+                  },
+                  type: "array",
+                },
+                provenance: { enum: ["query", "web_extraction"], type: "string" },
+                ref: { type: "string" },
+                rows: {
+                  items: { items: TAKO_DATASET_CELL, type: "array" },
+                  type: "array",
+                },
+                sources: {
+                  items: {
+                    properties: {
+                      index: { enum: ["data", "web"], type: "string" },
+                      name: { type: "string" },
+                    },
+                    required: ["name"],
+                    type: "object",
+                  },
+                  type: "array",
+                },
+                total_rows: { type: "number" },
+                truncated: { type: "boolean" },
+              },
+              required: ["columns", "rows", "total_rows", "truncated", "ref", "sources"],
+              type: "object",
+            },
+            { type: "null" },
+          ],
+        },
+        expires_at: TAKO_NULLABLE_STRING,
+        export_pricing: {
+          anyOf: [
+            {
+              properties: {
+                baseline_usd: { type: "number" },
+                free_rows: { type: "number" },
+                max_rows_ceiling: { type: "number" },
+                row_cpm_usd: { type: "number" },
+              },
+              required: ["baseline_usd", "free_rows", "max_rows_ceiling", "row_cpm_usd"],
+              type: "object",
+            },
+            { type: "null" },
+          ],
+        },
+        manifest: {
+          anyOf: [
+            {
+              items: {
+                properties: {
+                  dtype: {
+                    anyOf: [
+                      { enum: ["boolean", "date", "datetime", "number", "string"], type: "string" },
+                      { type: "null" },
+                    ],
+                  },
+                  entity: TAKO_NULLABLE_STRING,
+                  metric: TAKO_NULLABLE_STRING,
+                  name: TAKO_NULLABLE_STRING,
+                  unit: TAKO_NULLABLE_STRING,
+                },
+                type: "object",
+              },
+              type: "array",
+            },
+            { type: "null" },
+          ],
+        },
+        records: {
+          anyOf: [
+            {
+              items: { additionalProperties: TAKO_DATASET_CELL, type: "object" },
+              type: "array",
+            },
+            { type: "null" },
+          ],
+        },
+        total_rows: { anyOf: [{ type: "number" }, { type: "null" }] },
+        truncated: { type: "boolean" },
+        url: TAKO_NULLABLE_STRING,
+      },
+      type: "object",
+    },
+    { type: "null" },
+  ],
+};
+
+/**
+ * Output schema for AI Gateway's provider-managed `takoSearch` tool.
+ *
+ * Mirrors `TakoSearchOutput` from `@ai-sdk/gateway`: a response carrying
+ * knowledge-graph data cards alongside web results, or the shared gateway
+ * search error shape.
+ */
+export const WEB_SEARCH_TAKO_OUTPUT_SCHEMA: JsonObject = {
+  $schema: "http://json-schema.org/draft-07/schema#",
+  anyOf: [
+    {
+      properties: {
+        cards: {
+          items: {
+            properties: {
+              card_id: TAKO_NULLABLE_STRING,
+              card_type: TAKO_NULLABLE_STRING,
+              content: TAKO_RESULT_CONTENT,
+              data_freshness: {
+                anyOf: [
+                  {
+                    properties: {
+                      coverage_end: TAKO_NULLABLE_STRING,
+                      data_as_of: TAKO_NULLABLE_STRING,
+                      last_updated: TAKO_NULLABLE_STRING,
+                    },
+                    type: "object",
+                  },
+                  { type: "null" },
+                ],
+              },
+              description: TAKO_NULLABLE_STRING,
+              embed_url: TAKO_NULLABLE_STRING,
+              exportable: { type: "boolean" },
+              image_url: TAKO_NULLABLE_STRING,
+              methodologies: {
+                anyOf: [
+                  {
+                    items: {
+                      properties: {
+                        methodology_description: TAKO_NULLABLE_STRING,
+                        methodology_name: TAKO_NULLABLE_STRING,
+                      },
+                      type: "object",
+                    },
+                    type: "array",
+                  },
+                  { type: "null" },
+                ],
+              },
+              metric_definitions: {
+                anyOf: [
+                  {
+                    items: {
+                      properties: {
+                        definition: { type: "string" },
+                        name: { type: "string" },
+                      },
+                      required: ["name", "definition"],
+                      type: "object",
+                    },
+                    type: "array",
+                  },
+                  { type: "null" },
+                ],
+              },
+              nodes: {
+                anyOf: [
+                  {
+                    items: {
+                      properties: {
+                        description: TAKO_NULLABLE_STRING,
+                        id: { type: "string" },
+                        name: { type: "string" },
+                        type: { enum: ["entity", "metric"], type: "string" },
+                      },
+                      required: ["id", "type", "name"],
+                      type: "object",
+                    },
+                    type: "array",
+                  },
+                  { type: "null" },
+                ],
+              },
+              relevance: {
+                anyOf: [{ enum: ["High", "Low", "Medium"], type: "string" }, { type: "null" }],
+              },
+              semantic_description: TAKO_NULLABLE_STRING,
+              source_indexes: {
+                anyOf: [
+                  { items: { enum: ["data", "web"], type: "string" }, type: "array" },
+                  { type: "null" },
+                ],
+              },
+              sources: {
+                anyOf: [
+                  {
+                    items: {
+                      properties: {
+                        source_description: TAKO_NULLABLE_STRING,
+                        source_index: { enum: ["data", "web"], type: "string" },
+                        source_name: TAKO_NULLABLE_STRING,
+                        source_text: TAKO_NULLABLE_STRING,
+                        url: TAKO_NULLABLE_STRING,
+                      },
+                      required: ["source_index"],
+                      type: "object",
+                    },
+                    type: "array",
+                  },
+                  { type: "null" },
+                ],
+              },
+              title: TAKO_NULLABLE_STRING,
+              webpage_url: TAKO_NULLABLE_STRING,
+            },
+            type: "object",
+          },
+          type: "array",
+        },
+        related: {
+          anyOf: [{ items: { type: "object" }, type: "array" }, { type: "null" }],
+        },
+        request_id: { type: "string" },
+        usage: {
+          anyOf: [
+            {
+              properties: {
+                compute: {
+                  anyOf: [
+                    {
+                      properties: { cost_usd: { type: "number" } },
+                      required: ["cost_usd"],
+                      type: "object",
+                    },
+                    { type: "null" },
+                  ],
+                },
+                data: {
+                  anyOf: [
+                    {
+                      properties: {
+                        cost_usd: { type: "number" },
+                        datasets: { type: "number" },
+                      },
+                      required: ["cost_usd", "datasets"],
+                      type: "object",
+                    },
+                    { type: "null" },
+                  ],
+                },
+                total_cost_usd: { type: "number" },
+              },
+              required: ["total_cost_usd"],
+              type: "object",
+            },
+            { type: "null" },
+          ],
+        },
+        web_results: {
+          items: {
+            properties: {
+              content: TAKO_RESULT_CONTENT,
+              publish_date: TAKO_NULLABLE_STRING,
+              snippet: TAKO_NULLABLE_STRING,
+              source_name: TAKO_NULLABLE_STRING,
+              title: { type: "string" },
+              url: { type: "string" },
+            },
+            required: ["title", "url"],
+            type: "object",
+          },
+          type: "array",
+        },
+      },
+      required: ["request_id"],
+      type: "object",
+    },
+    {
+      additionalProperties: false,
+      properties: {
+        error: {
+          enum: [
+            "api_error",
+            "configuration_error",
+            "execution_error",
+            "invalid_input",
+            "rate_limit",
+            "timeout",
+            "unknown_tool",
+          ],
+          type: "string",
+        },
+        message: { type: "string" },
+        statusCode: { type: "number" },
+      },
+      required: ["error", "message"],
+      type: "object",
+    },
+  ],
+};

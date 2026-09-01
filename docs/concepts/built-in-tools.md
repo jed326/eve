@@ -31,7 +31,7 @@ Notes:
 - **`agent`** is available only in the root session. Its child uses the root's instructions, tools, connections, and sandbox, but starts with fresh conversation history and fresh [state](./state). The child receives neither `agent` nor `Workflow`; declared subagents do not receive the built-in `agent` either. See [Subagents](../subagents).
 - **`load_skill`** only pulls instructions into context. It adds no new execution surface, because behavior still comes from the tools the agent already has.
 - **`connection_search`** surfaces a connection's tools by their qualified name (e.g. `linear__list_issues`), which the model can then call directly. The model sees it only when the agent has connections.
-- **`web_search`** has no local executor; the provider runs it. AI Gateway models use Exa by default. To use Parallel instead, export `webSearch({ provider: "parallel" })` from `agent/tools/web_search.ts`. Direct provider models continue to use their native search implementation. To supply your own implementation, override it with `defineTool()`.
+- **`web_search`** has no local executor; the provider runs it. AI Gateway models use Exa by default. To use Parallel or Tako instead, export `webSearch({ provider: "parallel" })` or `webSearch({ provider: "tako" })` from `agent/tools/web_search.ts`. Tako searches the live web and a curated knowledge graph together, so results can include structured data cards alongside web results. Direct provider models continue to use their native search implementation. To supply your own implementation, override it with `defineTool()`.
 - **`web_fetch`** follows up to ten redirects, rechecking every destination for SSRF safety. Non-success HTTP responses return a plain-text failure result with the response body when available instead of failing the tool call.
 
 Review these default tools before production use. Disable, wrap, restrict, or require approval for any tool that can access the filesystem, network, shell, or sensitive data.
@@ -101,7 +101,7 @@ import { webSearch } from "eve/tools/web_search";
 export default webSearch({ provider: "parallel" });
 ```
 
-Set `provider` to `"exa"` or `"parallel"`. Without this file, AI Gateway models use Exa.
+Set `provider` to `"exa"`, `"parallel"`, or `"tako"`. Without this file, AI Gateway models use Exa.
 
 ## Disable a default
 

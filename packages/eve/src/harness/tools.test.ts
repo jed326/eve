@@ -13,6 +13,7 @@ import {
   WEB_SEARCH_GOOGLE_OUTPUT_SCHEMA,
   WEB_SEARCH_OPENAI_OUTPUT_SCHEMA,
   WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA,
+  WEB_SEARCH_TAKO_OUTPUT_SCHEMA,
 } from "#harness/provider-tool-schemas.js";
 import type { JsonObject } from "#shared/json.js";
 import { isAsyncIterable } from "#shared/async-iterable.js";
@@ -468,6 +469,27 @@ describe("buildToolSet", () => {
     });
 
     expect(getOutputJsonSchema(result.web_search)).toEqual(WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA);
+  });
+
+  it("injects Tako when configured for an AI Gateway model", async () => {
+    const tools: HarnessToolMap = new Map<string, HarnessToolDefinition>([
+      [
+        "web_search",
+        {
+          description: "Web search.",
+          inputSchema: jsonSchema({}),
+          name: "web_search",
+        },
+      ],
+    ]);
+
+    const result = await buildToolSetWithProviderTools({
+      modelReference: { id: "openai/gpt-5.4" },
+      tools,
+      webSearchProvider: "tako",
+    });
+
+    expect(getOutputJsonSchema(result.web_search)).toEqual(WEB_SEARCH_TAKO_OUTPUT_SCHEMA);
   });
 
   it("omits provider-managed web_search when no provider backend is available", async () => {

@@ -7,6 +7,7 @@ import {
   WEB_SEARCH_GOOGLE_OUTPUT_SCHEMA,
   WEB_SEARCH_OPENAI_OUTPUT_SCHEMA,
   WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA,
+  WEB_SEARCH_TAKO_OUTPUT_SCHEMA,
   WEB_SEARCH_TOOL_NAME,
 } from "#harness/provider-tool-schemas.js";
 import type { JsonObject } from "#shared/json.js";
@@ -15,7 +16,7 @@ import type { WebSearchProvider } from "#shared/web-search.js";
 /**
  * The provider backend resolved for one web search tool invocation.
  */
-export type WebSearchBackend = "anthropic" | "exa" | "google" | "openai" | "parallel";
+export type WebSearchBackend = "anthropic" | "exa" | "google" | "openai" | "parallel" | "tako";
 
 /**
  * Maps an upstream provider tool type (the literal `type` string the AI SDK
@@ -65,6 +66,8 @@ export function resolveWebSearchOutputSchema(backend: WebSearchBackend): JsonObj
       return WEB_SEARCH_OPENAI_OUTPUT_SCHEMA;
     case "parallel":
       return WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA;
+    case "tako":
+      return WEB_SEARCH_TAKO_OUTPUT_SCHEMA;
   }
 }
 
@@ -146,6 +149,20 @@ export async function resolveWebSearchProviderTool(
       const { gateway } = await import("ai");
       return attachWebSearchOutputSchema(
         gateway.tools.parallelSearch() as ToolSet[string],
+        backend,
+      );
+    }
+    case "tako": {
+      const { gateway } = await import("ai");
+      // Inlined contents bypass the shared tool-output budget and add
+      // per-row/per-article charges; `web_fetch` covers page drill-down.
+      return attachWebSearchOutputSchema(
+        gateway.tools.takoSearch({
+          sources: {
+            data: { includeContents: false },
+            web: { includeContents: false, snippetMaxChars: 1_000 },
+          },
+        }) as ToolSet[string],
         backend,
       );
     }

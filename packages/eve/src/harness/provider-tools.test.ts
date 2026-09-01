@@ -7,6 +7,7 @@ import {
   WEB_SEARCH_GOOGLE_OUTPUT_SCHEMA,
   WEB_SEARCH_OPENAI_OUTPUT_SCHEMA,
   WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA,
+  WEB_SEARCH_TAKO_OUTPUT_SCHEMA,
 } from "#harness/provider-tool-schemas.js";
 import {
   resolveFrameworkToolFromUpstreamType,
@@ -20,6 +21,7 @@ const {
   anthropicWebSearch_20260209,
   gatewayExaSearch,
   gatewayParallelSearch,
+  gatewayTakoSearch,
   googleSearch,
   openaiWebSearch,
 } = vi.hoisted(() => ({
@@ -31,6 +33,7 @@ const {
   })),
   gatewayExaSearch: vi.fn(() => ({ providerTool: "gateway.exaSearch" })),
   gatewayParallelSearch: vi.fn(() => ({ providerTool: "gateway.parallelSearch" })),
+  gatewayTakoSearch: vi.fn(() => ({ providerTool: "gateway.takoSearch" })),
   googleSearch: vi.fn(() => ({ providerTool: "google.googleSearch" })),
   openaiWebSearch: vi.fn(() => ({ providerTool: "openai.webSearch" })),
 }));
@@ -68,6 +71,7 @@ vi.mock("ai", async () => {
       tools: {
         exaSearch: gatewayExaSearch,
         parallelSearch: gatewayParallelSearch,
+        takoSearch: gatewayTakoSearch,
       },
     },
   };
@@ -83,6 +87,7 @@ describe("resolveWebSearchBackend", () => {
     anthropicWebSearch_20260209.mockClear();
     gatewayExaSearch.mockClear();
     gatewayParallelSearch.mockClear();
+    gatewayTakoSearch.mockClear();
     googleSearch.mockClear();
     openaiWebSearch.mockClear();
   });
@@ -95,6 +100,11 @@ describe("resolveWebSearchBackend", () => {
   it("returns the configured Parallel provider for a gateway model", () => {
     const ref: RuntimeModelReference = { id: "openai/gpt-5.4" };
     expect(resolveWebSearchBackend(ref, "parallel")).toBe("parallel");
+  });
+
+  it("returns the configured Tako provider for a gateway model", () => {
+    const ref: RuntimeModelReference = { id: "openai/gpt-5.4" };
+    expect(resolveWebSearchBackend(ref, "tako")).toBe("tako");
   });
 
   it("returns 'openai' for a BYO OpenAI model", () => {
@@ -208,12 +218,26 @@ describe("resolveWebSearchBackend", () => {
     expect(getOutputJsonSchema(tool)).toEqual(WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA);
   });
 
+  it("uses gateway takoSearch for the Tako backend", async () => {
+    const tool = await resolveWebSearchProviderTool("tako");
+
+    expect(gatewayTakoSearch).toHaveBeenCalledWith({
+      sources: {
+        data: { includeContents: false },
+        web: { includeContents: false, snippetMaxChars: 1_000 },
+      },
+    });
+    expect(tool).toMatchObject({ providerTool: "gateway.takoSearch" });
+    expect(getOutputJsonSchema(tool)).toEqual(WEB_SEARCH_TAKO_OUTPUT_SCHEMA);
+  });
+
   it("resolves output schemas per selected backend", () => {
     expect(resolveWebSearchOutputSchema("anthropic")).toBe(WEB_SEARCH_ANTHROPIC_OUTPUT_SCHEMA);
     expect(resolveWebSearchOutputSchema("exa")).toBe(WEB_SEARCH_EXA_OUTPUT_SCHEMA);
     expect(resolveWebSearchOutputSchema("google")).toBe(WEB_SEARCH_GOOGLE_OUTPUT_SCHEMA);
     expect(resolveWebSearchOutputSchema("openai")).toBe(WEB_SEARCH_OPENAI_OUTPUT_SCHEMA);
     expect(resolveWebSearchOutputSchema("parallel")).toBe(WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA);
+    expect(resolveWebSearchOutputSchema("tako")).toBe(WEB_SEARCH_TAKO_OUTPUT_SCHEMA);
   });
 });
 

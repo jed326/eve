@@ -223,6 +223,16 @@ export default webSearch({ provider: "browserbase" });
 
 Use a [Gateway model ID](../agent-config#set-the-model) to route searches through Browserbase. AI Gateway executes the search using `AI_GATEWAY_API_KEY` or Vercel project OIDC credentials; no `BROWSERBASE_API_KEY` is needed. See [Browserbase Search on AI Gateway](https://vercel.com/docs/ai-gateway/models-and-providers/web-search#using-browserbase-search).
 
+Select Tako Search to search the web and Tako's knowledge graph of structured data in one call:
+
+```ts title="agent/tools/web_search.ts"
+import { webSearch } from "eve/tools/web_search";
+
+export default webSearch({ provider: "tako" });
+```
+
+Results include web pages and Tako data cards. Each card names its sources and links an embeddable chart. The model chooses the search effort and whether to return a card's rows in the result. Deep searches and card rows cost more than a fast search, so say in your agent instructions when to use them. AI Gateway executes the search with its usual credentials, so no Tako API key is needed. See [Tako Search on AI Gateway](https://vercel.com/docs/ai-gateway/models-and-providers/web-search#using-tako-search).
+
 Select the model vendor's own hosted search for a model routed through AI Gateway:
 
 ```ts title="agent/tools/web_search.ts"
@@ -235,7 +245,7 @@ The vendor runs the search server-side and returns citations: OpenAI models use 
 
 eve picks the search tool from the requested model, so when AI Gateway's own `models` fallback serves a call with a model from another vendor, that call can run without search. Anthropic web search runs only on Anthropic's own API. AI Gateway tries another host when Amazon Bedrock or Google Vertex AI rejects the tool. If no host accepts it, eve retries the step without `web_search`.
 
-Set `fallback` to give models without native search a provider that works with any Gateway model (`"exa"`, `"parallel"`, or `"browserbase"`):
+Set `fallback` to give models without native search a provider that works with any Gateway model (`"exa"`, `"parallel"`, `"browserbase"`, or `"tako"`):
 
 ```ts title="agent/tools/web_search.ts"
 import { webSearch } from "eve/tools/web_search";

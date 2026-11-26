@@ -1,1 +1,10 @@
-["WebFetchToolInput", "WebFetchToolOutput", "default", "webFetch"]
+[
+  "GatewayWebFetchDefinition",
+  "GatewayWebFetchInput",
+  "WebFetchProvider",
+  "WebFetchToolInput",
+  "WebFetchToolOutput",
+  "default",
+  "gatewayWebFetch",
+  "webFetch"
+]

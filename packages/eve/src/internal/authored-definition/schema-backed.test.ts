@@ -5,6 +5,7 @@ import { z } from "#compiled/zod/index.js";
 import { defineDynamic } from "#dynamic/definition.js";
 import { defineTool, disableTool } from "#tools/definition.js";
 import { once } from "#tools/approval/policies.js";
+import { gatewayWebFetch } from "#tools/provided/gateway-web-fetch.js";
 import { webSearch } from "#tools/provided/web-search.js";
 import { defineWorkflowTool } from "#tools/workflow-definition.js";
 import { normalizeToolDefinition } from "#internal/authored-definition/schema-backed.js";
@@ -153,6 +154,30 @@ describe("normalizeToolDefinition", () => {
     expect(() =>
       normalizeToolDefinition({ kind: "eve:web-search-tool", provider: "other" }, FAILURE_MESSAGE),
     ).toThrow('Expected "provider" to be one of: exa, parallel');
+  });
+
+  it("normalizes a Gateway web fetch provider", () => {
+    expect(normalizeToolDefinition(gatewayWebFetch({ provider: "tako" }), FAILURE_MESSAGE)).toEqual(
+      {
+        kind: "web-fetch-tool",
+        selection: { provider: "tako" },
+      },
+    );
+  });
+
+  it("rejects a web fetch provider AI Gateway doesn't run", () => {
+    expect(() =>
+      normalizeToolDefinition({ kind: "eve:gateway-web-fetch", provider: "exa" }, FAILURE_MESSAGE),
+    ).toThrow('Expected "provider" to be one of: tako');
+  });
+
+  it("rejects a deferred Gateway web fetch", () => {
+    expect(() =>
+      normalizeToolDefinition(
+        { ...gatewayWebFetch({ provider: "tako" }), deferred: true },
+        FAILURE_MESSAGE,
+      ),
+    ).toThrow("Provider tools can't be deferred");
   });
 
   it("rejects authored tool exports that carry an authored `name` field", () => {

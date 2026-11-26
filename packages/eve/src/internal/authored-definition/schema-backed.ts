@@ -8,6 +8,11 @@ import { TASK_ID_INPUT, withTaskIdSchema } from "#execution/tasks/task-id-input.
 import { isObject } from "#shared/guards.js";
 import type { JsonObject } from "#shared/json.js";
 import { isDisabledToolSentinel } from "#tools/definition.js";
+import {
+  isGatewayWebFetchDefinition,
+  WEB_FETCH_PROVIDERS,
+  type WebFetchSelection,
+} from "#tools/provided/gateway-web-fetch.js";
 import { isWebSearchToolDefinition } from "#tools/provided/web-search.js";
 import {
   WEB_SEARCH_FALLBACK_PROVIDERS,
@@ -63,6 +68,7 @@ type NormalizedToolEntry =
   | { readonly kind: "tool"; readonly definition: NormalizedAuthoredTool }
   | { readonly kind: "disabled" }
   | { readonly kind: "web-search-tool"; readonly selection: WebSearchSelection }
+  | { readonly kind: "web-fetch-tool"; readonly selection: WebFetchSelection }
   | { readonly kind: "dynamic-tool" };
 
 export function normalizeToolDefinition(value: unknown, message: string): NormalizedToolEntry {
@@ -73,13 +79,14 @@ export function normalizeToolDefinition(value: unknown, message: string): Normal
   if (isDisabledToolSentinel(value)) {
     return { kind: "disabled" };
   }
+  if (isGatewayWebFetchDefinition(value)) {
+    const record = expectProviderToolRecord(value, message);
+    expectOnlyKnownKeys(record, ["kind", "provider"], message);
+    const provider = expectOneOf(record.provider, WEB_FETCH_PROVIDERS, "provider", message);
+    return { kind: "web-fetch-tool", selection: { provider } };
+  }
   if (isWebSearchToolDefinition(value)) {
-    const record = expectObjectRecord(value, message);
-    if (record.deferred !== undefined) {
-      throw new Error(
-        `${message} Provider tools can't be deferred: the provider has to see their definition. Remove "deferred".`,
-      );
-    }
+    const record = expectProviderToolRecord(value, message);
     expectOnlyKnownKeys(record, ["fallback", "kind", "provider"], message);
     const provider = expectOneOf(record.provider, WEB_SEARCH_PROVIDERS, "provider", message);
     if (record.fallback === undefined) {
@@ -237,6 +244,16 @@ export function assertNoOwnTaskIdInput(inputSchema: JsonObject | null, message: 
   throw new Error(
     `${message} inputSchema declares "${TASK_ID_INPUT}", which eve adds to a serve tool's model input to send a call to a running task. Rename the field.`,
   );
+}
+
+function expectProviderToolRecord(value: object, message: string): Record<string, unknown> {
+  const record = expectObjectRecord(value, message);
+  if (record.deferred !== undefined) {
+    throw new Error(
+      `${message} Provider tools can't be deferred: the provider has to see their definition. Remove "deferred".`,
+    );
+  }
+  return record;
 }
 
 function expectOneOf<const T extends string>(

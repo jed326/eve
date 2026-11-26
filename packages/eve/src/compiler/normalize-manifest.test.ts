@@ -46,6 +46,7 @@ import { defineTool, disableTool } from "#tools/definition.js";
 import { defineMemory } from "#public/memory/index.js";
 import { defineDynamic } from "#dynamic/definition.js";
 import { defineDynamic as defineDynamicModel } from "#public/definitions/model.js";
+import { gatewayWebFetch } from "#tools/provided/gateway-web-fetch.js";
 import { webSearch, type WebSearchToolInput } from "#tools/provided/web-search.js";
 import { agent as agentTool } from "#tools/framework/agent.js";
 
@@ -369,6 +370,51 @@ describe("compileAgentManifest source graph", () => {
       },
       shape: { suspend: "workflow" },
     });
+  });
+
+  it("compiles a Gateway web fetch into a provider tool that replaces the provided web_fetch", async () => {
+    const sourceRegistry = registry([
+      {
+        logicalPath: "tools/web_fetch.ts",
+        loadNamespace: async () => ({ default: gatewayWebFetch({ provider: "tako" }) }),
+      },
+    ]);
+    const compiled = await compileAgentManifest(manifest(), {
+      sourceRegistries: [sourceRegistry],
+    });
+    const serialized = compiledAgentManifestSchema.parse(JSON.parse(JSON.stringify(compiled)));
+    const moduleMap = await createProgrammaticCompiledModuleMap(serialized, [
+      frameworkAgentSourceRegistry,
+      sourceRegistry,
+    ]);
+    const graph = await resolveRuntimeAgentGraph({ manifest: serialized, moduleMap });
+
+    expect(serialized.tools.filter((tool) => tool.name === "web_fetch")).toEqual([
+      expect.objectContaining({
+        behavior: expect.objectContaining({
+          handling: { kind: "provider-tool", provider: "tako" },
+        }),
+        hasExecute: false,
+      }),
+    ]);
+    expect(graph.root.turnAgent.tools.find((tool) => tool.name === "web_fetch")).toMatchObject({
+      behavior: { handling: { kind: "provider-tool", provider: "tako" } },
+    });
+  });
+
+  it("rejects a Gateway web fetch exported from another tool path", async () => {
+    await expect(
+      compileAgentManifest(manifest(), {
+        sourceRegistries: [
+          registry([
+            {
+              logicalPath: "tools/fetch_data.ts",
+              loadNamespace: async () => ({ default: gatewayWebFetch({ provider: "tako" }) }),
+            },
+          ]),
+        ],
+      }),
+    ).rejects.toThrow('must be exported from "tools/web_fetch.ts"');
   });
 
   it.each<WebSearchToolInput>([

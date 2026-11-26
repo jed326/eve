@@ -5,7 +5,7 @@ import type { ModelProfile } from "#harness/model-profile.js";
 import { isObject } from "#shared/guards.js";
 import type { HarnessToolDefinition } from "#harness/execute-tool.js";
 import { resolveApprovalPolicy } from "#approval/definition.js";
-import { resolveWebSearchBackend, resolveWebSearchProviderTool } from "#harness/provider-tools.js";
+import { resolveProviderTool } from "#harness/provider-tools.js";
 import type { HarnessToolMap } from "#harness/types.js";
 import { buildCallbackContext } from "#context/build-callback-context.js";
 import { isAuthorizationSignal } from "#harness/authorization.js";
@@ -117,17 +117,17 @@ export async function buildToolSetWithProviderTools(input: {
       definition.execute === undefined &&
       !disabled?.has(definition.name)
     ) {
-      const backend = resolveWebSearchBackend(input.profile, handling);
-      if (backend === null) {
-        log.debug("model has no web search backend; leaving the tool out", {
+      const providerTool = await resolveProviderTool(definition.name, input.profile, handling);
+      if (providerTool === null) {
+        log.debug("model has no backend for the provider tool; leaving the tool out", {
           gateway: input.profile.gateway,
           modelProvider: input.profile.provider,
-          searchProvider: handling.provider,
+          provider: handling.provider,
           tool: definition.name,
         });
         delete tools[definition.name];
       } else {
-        tools[definition.name] = await resolveWebSearchProviderTool(backend);
+        tools[definition.name] = providerTool;
       }
     }
   }

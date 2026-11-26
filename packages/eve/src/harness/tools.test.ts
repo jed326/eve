@@ -641,6 +641,79 @@ describe("buildToolSet", () => {
     ).resolves.toMatchObject({ success: true });
   });
 
+  it("injects Tako Contents as web_fetch with url delivery for a Gateway model", async () => {
+    const tools: HarnessToolMap = new Map([
+      [
+        "web_fetch",
+        {
+          behavior: {
+            availability: [],
+            handling: { kind: "provider-tool", provider: "tako" },
+          },
+          description: "Fetch.",
+          inputSchema: jsonSchema({}),
+          name: "web_fetch",
+        },
+      ],
+    ]);
+    const result = await buildToolSetWithProviderTools({
+      profile: resolveModelProfile("openai/gpt-5.4"),
+      describe: describeTool,
+      tools,
+    });
+    const fetch = result.web_fetch!;
+    expect(fetch).toMatchObject({
+      type: "provider",
+      id: "gateway.tako_contents",
+      args: { contentFormat: "csv", mode: "url" },
+    });
+    expect(fetch.execute).toBeUndefined();
+    await expect(
+      fetch.toModelOutput!({
+        input: { url: "https://tako.com/card/abc" },
+        output: {
+          request_id: "contents-1",
+          contents: [
+            {
+              source_url: "https://tako.com/card/abc",
+              delivery: "quote",
+              cost: 0.02,
+            },
+          ],
+        },
+        toolCallId: "call_1",
+      }),
+    ).resolves.toEqual({
+      type: "text",
+      value: "Quote for https://tako.com/card/abc: $0.02 to fetch. Nothing was fetched or charged.",
+    });
+  });
+
+  it("omits the Gateway web_fetch for a direct provider model", async () => {
+    const tools: HarnessToolMap = new Map<string, HarnessToolDefinition>([
+      [
+        "web_fetch",
+        {
+          behavior: {
+            availability: [],
+            handling: { kind: "provider-tool", provider: "tako" },
+          },
+          description: "Fetch.",
+          inputSchema: jsonSchema({}),
+          name: "web_fetch",
+        },
+      ],
+    ]);
+
+    const result = await buildToolSetWithProviderTools({
+      profile: resolveModelProfile(directModel("openai")),
+      describe: describeTool,
+      tools,
+    });
+
+    expect(result.web_fetch).toBeUndefined();
+  });
+
   it("omits provider-managed web_search when no provider backend is available", async () => {
     const tools: HarnessToolMap = new Map<string, HarnessToolDefinition>([
       [

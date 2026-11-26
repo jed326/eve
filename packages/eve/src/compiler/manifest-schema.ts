@@ -6,6 +6,7 @@ import type { NormalizedChannelCorsOptions } from "#channel/cors.js";
 import { jsonObjectSchema } from "#shared/json-schemas.js";
 import type { ModuleSourceRef } from "#shared/source-ref.js";
 import { WEB_SEARCH_FALLBACK_PROVIDERS, WEB_SEARCH_PROVIDERS } from "#shared/web-search.js";
+import { WEB_FETCH_PROVIDERS } from "#tools/provided/gateway-web-fetch.js";
 import {
   AGENT_WORKFLOW_RETENTION_VALUES,
   ANTHROPIC_PROMPT_CACHE_TTLS,
@@ -512,7 +513,7 @@ export const compiledToolBehaviorSchema: z.ZodType<CompiledToolBehavior> = z
           .object({
             fallback: z.enum(WEB_SEARCH_FALLBACK_PROVIDERS).optional(),
             kind: z.literal("provider-tool"),
-            provider: z.enum(WEB_SEARCH_PROVIDERS),
+            provider: z.union([z.enum(WEB_SEARCH_PROVIDERS), z.enum(WEB_FETCH_PROVIDERS)]),
           })
           .strict(),
         z

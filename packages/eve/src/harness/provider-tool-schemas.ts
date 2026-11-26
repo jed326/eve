@@ -1,6 +1,7 @@
 import type { JsonObject } from "#shared/json.js";
 
 export const WEB_SEARCH_TOOL_NAME = "web_search";
+export const WEB_FETCH_TOOL_NAME = "web_fetch";
 
 export { resolveWebSearchActivityLabel } from "#tools/provided/web-search.js";
 

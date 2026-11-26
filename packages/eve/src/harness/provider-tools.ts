@@ -1,15 +1,22 @@
 import { jsonSchema, type JSONSchema7, type ToolSet } from "ai";
 
 import type { ModelProfile } from "#harness/model-profile.js";
+import { takoContentsModelOutput } from "#harness/tako-contents-output.js";
 import {
   WEB_SEARCH_ANTHROPIC_OUTPUT_SCHEMA,
   WEB_SEARCH_EXA_OUTPUT_SCHEMA,
   WEB_SEARCH_GOOGLE_OUTPUT_SCHEMA,
   WEB_SEARCH_OPENAI_OUTPUT_SCHEMA,
   WEB_SEARCH_PARALLEL_OUTPUT_SCHEMA,
+  WEB_FETCH_TOOL_NAME,
   WEB_SEARCH_TOOL_NAME,
 } from "#harness/provider-tool-schemas.js";
 import type { JsonObject } from "#shared/json.js";
+import {
+  WEB_FETCH_PROVIDERS,
+  type WebFetchProvider,
+  type WebFetchSelection,
+} from "#tools/provided/gateway-web-fetch.js";
 import type { WebSearchSelection } from "#shared/web-search.js";
 
 type WebSearchBackend =
@@ -71,6 +78,41 @@ const NATIVE_WEB_SEARCH_BACKENDS: ReadonlySet<string> = new Set<NativeWebSearchB
   "google",
   "openai",
 ]);
+
+export async function resolveProviderTool(
+  toolName: string,
+  profile: ModelProfile,
+  selection: WebSearchSelection | WebFetchSelection,
+): Promise<ToolSet[string] | null> {
+  if (toolName === WEB_FETCH_TOOL_NAME) {
+    return profile.gateway ? await resolveWebFetchProviderTool(webFetchProvider(selection)) : null;
+  }
+  const backend = resolveWebSearchBackend(profile, selection);
+  return backend === null ? null : await resolveWebSearchProviderTool(backend);
+}
+
+function webFetchProvider(selection: WebSearchSelection | WebFetchSelection): WebFetchProvider {
+  const provider = WEB_FETCH_PROVIDERS.find((candidate) => candidate === selection.provider);
+  if (provider === undefined) {
+    throw new Error(`"${selection.provider}" is not a web_fetch provider.`);
+  }
+  return provider;
+}
+
+export async function resolveWebFetchProviderTool(
+  provider: WebFetchProvider,
+): Promise<ToolSet[string]> {
+  switch (provider) {
+    case "tako": {
+      const { gateway } = await import("ai");
+      return {
+        ...gateway.tools.takoContents({ contentFormat: "csv", mode: "url" }),
+        toModelOutput: ({ output, toolCallId }: { output: unknown; toolCallId: string }) =>
+          takoContentsModelOutput({ output, toolCallId, toolName: WEB_FETCH_TOOL_NAME }),
+      } as ToolSet[string];
+    }
+  }
+}
 
 export async function resolveWebSearchProviderTool(
   backend: WebSearchBackend,

@@ -639,7 +639,7 @@ class AgentGraphCompiler {
             definitions.push(withExtensionNamespace(result.definition, candidate.owner));
             state.evaluation.requireRuntimeEntry(candidate.sourceId);
           } else {
-            assertNonExtensionSpecialTool(candidate as AgentModuleCandidate, "Web search");
+            assertNonExtensionSpecialTool(candidate as AgentModuleCandidate, result.label);
             tools.push(result.definition);
           }
           break;

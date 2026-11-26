@@ -96,6 +96,8 @@ The route verbs `GET`/`HEAD`/`POST`/`PUT`/`PATCH`/`DELETE`/`OPTIONS`/`WS` and `d
 
 `webSearch({ provider })` selects `"exa"`, `"parallel"`, `"browserbase"`, `"tako"`, or `"native"` for AI Gateway search with the Gateway model's credentials. `"native"` uses the model vendor's own search for OpenAI, Anthropic, and Gemini 3 and later models. Other Gateway models get no search unless you set `fallback` to `"exa"`, `"parallel"`, `"browserbase"`, or `"tako"`. Direct provider models keep their native search implementation when supported. See [Built-in tools](../concepts/built-in-tools#web_search) for setup and provider behavior.
 
+`gatewayWebFetch({ provider })` from `eve/tools/web_fetch` replaces the provided `web_fetch` with a fetch that AI Gateway runs; `"tako"` is the only provider. Only Gateway models get it. See [Built-in tools](../concepts/built-in-tools#web_fetch).
+
 `defineInstructions` accepts `{ content: string, role?: "system" | "user" }`; omit `role` for `"system"`. Dynamic instructions use `defineDynamic(ctx => defineInstructions(...))` or return `null`.
 
 Dynamic connections use `defineDynamic(ctx => value)`, returning one MCP or OpenAPI connection definition, a map, or `null`. Functions read the saved session context and can load conversation history with `ctx.messages()`. Set `instanceKey` to a stable, non-secret account or tenant identifier. eve rejects a pending sign-in callback when its resolved connection instance changes. See [Dynamic capabilities](../guides/dynamic-capabilities).

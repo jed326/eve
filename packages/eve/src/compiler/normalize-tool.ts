@@ -8,14 +8,31 @@ import {
   type ModuleBackedDefinitionLoadOptions,
 } from "#compiler/normalize-helpers.js";
 import { eveNamespaceReservation } from "#protocol/runtime-tools.js";
+import { GATEWAY_WEB_FETCH_TOOL_DESCRIPTION } from "#tools/provided/gateway-web-fetch.js";
 import { WEB_SEARCH_TOOL_DESCRIPTION } from "#tools/provided/web-search.js";
+
+const PROVIDER_TOOLS = {
+  "web-fetch-tool": {
+    description: GATEWAY_WEB_FETCH_TOOL_DESCRIPTION,
+    factory: "gatewayWebFetch()",
+    label: "Web fetch",
+    name: "web_fetch",
+  },
+  "web-search-tool": {
+    description: WEB_SEARCH_TOOL_DESCRIPTION,
+    factory: "webSearch()",
+    label: "Web search",
+    name: "web_search",
+  },
+} as const;
 
 export type CompiledToolEntry =
   | { readonly kind: "tool"; readonly definition: CompiledToolDefinition }
   | { readonly kind: "disabled"; readonly name: string }
   | {
       readonly definition: CompiledToolDefinition;
-      readonly kind: "web-search-tool";
+      readonly kind: "provider-tool";
+      readonly label: string;
     }
   | { readonly kind: "dynamic"; readonly definition: CompiledDefinition };
 
@@ -48,10 +65,11 @@ export async function compileToolEntry(
     return { kind: "disabled", name: toolName };
   }
 
-  if (entry.kind === "web-search-tool") {
-    if (toolName !== "web_search") {
+  if (entry.kind === "web-search-tool" || entry.kind === "web-fetch-tool") {
+    const providerTool = PROVIDER_TOOLS[entry.kind];
+    if (toolName !== providerTool.name) {
       throw new Error(
-        `The webSearch() definition must be exported from "tools/web_search.ts", not "${source.logicalPath}".`,
+        `The ${providerTool.factory} definition must be exported from "tools/${providerTool.name}.ts", not "${source.logicalPath}".`,
       );
     }
     return {
@@ -60,7 +78,7 @@ export async function compileToolEntry(
           availability: [],
           handling: { kind: "provider-tool", ...entry.selection },
         },
-        description: WEB_SEARCH_TOOL_DESCRIPTION,
+        description: providerTool.description,
         exportName: source.exportName,
         hasExecute: false,
         hasModelOutputProjection: false,
@@ -71,7 +89,8 @@ export async function compileToolEntry(
         sourceKind: "module",
         requiresApproval: false,
       },
-      kind: "web-search-tool",
+      kind: "provider-tool",
+      label: providerTool.label,
     };
   }
 

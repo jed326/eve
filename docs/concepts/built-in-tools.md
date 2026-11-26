@@ -234,6 +234,18 @@ export default defineTool({
 });
 ```
 
+Select a fetch that AI Gateway runs instead:
+
+```ts title="agent/tools/web_fetch.ts"
+import { gatewayWebFetch } from "eve/tools/web_fetch";
+
+export default gatewayWebFetch({ provider: "tako" });
+```
+
+With `"tako"`, `web_fetch` uses [Tako Contents](https://docs.tako.com/documentation/integrating-tako/contents/overview): a Tako card URL, such as one from Tako Search, returns the card's data as CSV, and any other URL returns the page's text. AI Gateway runs the fetch with its usual credentials, so no Tako API key is needed. Only Gateway models get this `web_fetch`.
+
+Tako sends each result as a download link. eve downloads it and, like [`offloadContent`](../tools#keep-large-results-out-of-context-with-offloadcontent), saves a result over 20,000 bytes to `/tmp/.eve/tool-results/` in the session's sandbox. The model gets the card's description and columns, the file's path, and its first lines, and reads the rest with `bash` or `read_file`. Tako bills a card export by row, and AI Gateway refuses an export quoted above $1.
+
 Disable it:
 
 ```ts title="agent/tools/web_fetch.ts"

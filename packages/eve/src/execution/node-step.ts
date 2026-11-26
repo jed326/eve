@@ -27,11 +27,24 @@ import {
 } from "#execution/tools/workflow/harness-definition.js";
 import {
   resolveWebSearchActivityLabel,
+  WEB_FETCH_TOOL_NAME,
   WEB_SEARCH_TOOL_NAME,
 } from "#harness/provider-tool-schemas.js";
+import { isObject } from "#shared/guards.js";
+import { toolLabel } from "#tools/tool-label.js";
 import type { KernelConfig } from "#harness/types.js";
 
 const log = createLogger("execution.node-step");
+
+const PROVIDER_TOOL_LABELS: ReadonlyMap<string, HarnessToolDefinition["label"]> = new Map([
+  [WEB_SEARCH_TOOL_NAME, { start: resolveWebSearchActivityLabel }],
+  [
+    WEB_FETCH_TOOL_NAME,
+    {
+      start: (input: unknown) => toolLabel("Fetch", isObject(input) ? input.url : undefined),
+    },
+  ],
+]);
 
 export type CreateRuntime = (config: {
   readonly compiledArtifactsSource: RuntimeCompiledArtifactsSource;
@@ -195,9 +208,7 @@ function createRegisteredHarnessToolDefinition(input: {
     availableInSubagents: def.availableInSubagents,
     label:
       def.label ??
-      (def.owner.kind === "framework" && def.name === WEB_SEARCH_TOOL_NAME
-        ? { start: resolveWebSearchActivityLabel }
-        : undefined),
+      (def.owner.kind === "framework" ? PROVIDER_TOOL_LABELS.get(def.name) : undefined),
     behavior: input.behavior,
     deferred: def.deferred,
     description: def.description,
